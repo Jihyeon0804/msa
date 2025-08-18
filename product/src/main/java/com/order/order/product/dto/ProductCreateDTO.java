@@ -1,6 +1,5 @@
 package com.order.order.product.dto;
 
-import com.order.order.member.domain.Member;
 import com.order.order.product.domain.Product;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,13 +16,13 @@ public class ProductCreateDTO {
     private int stockQuantity;
     private MultipartFile productImage;
 
-    public Product toEntity(Member member) {
+    public Product toEntity(String email) {
         return Product.builder()
                 .name(this.name)
                 .category(this.category)
                 .price(this.price)
                 .stockQuantity(this.stockQuantity)
-                .member(member)
+                .memberEmail(email)
                 .build();
     }
 }

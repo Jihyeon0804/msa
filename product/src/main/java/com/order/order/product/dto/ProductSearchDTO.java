@@ -1,4 +1,4 @@
-package com.order.order.product.domain;
+package com.order.order.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

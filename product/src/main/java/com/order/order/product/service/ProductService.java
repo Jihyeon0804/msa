@@ -1,12 +1,7 @@
 package com.order.order.product.service;
 
-import com.order.order.member.domain.Member;
-import com.order.order.member.repository.MemberRepository;
 import com.order.order.product.domain.Product;
-import com.order.order.product.domain.ProductSearchDTO;
-import com.order.order.product.dto.ProductCreateDTO;
-import com.order.order.product.dto.ProductResDTO;
-import com.order.order.product.dto.ProductUpdateDTO;
+import com.order.order.product.dto.*;
 import com.order.order.product.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -14,10 +9,10 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -33,20 +28,18 @@ import java.util.stream.Collectors;
 @Transactional
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductService {
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
     private final ProductRepository productRepository;
-    private final MemberRepository memberRepository;
     private final S3Client s3Client;
 
     // 상품 등록
-    public Long save(ProductCreateDTO productCreateDTO) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Member member = memberRepository.findByEmail(email).orElseThrow((() -> new EntityNotFoundException("권한 없음")));
-        Product product = productRepository.save(productCreateDTO.toEntity(member));
+    public Long save(ProductCreateDTO productCreateDTO, String email) {
+        Product product = productRepository.save(productCreateDTO.toEntity(email));
 
         if (productCreateDTO.getProductImage() != null) {
             // 이미지 파일명 설정
@@ -118,13 +111,15 @@ public class ProductService {
 
     // 상품 상세 조회
     public ProductResDTO findById(Long id) {
-        Product product = productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다"));
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
         return ProductResDTO.fromEntity(product);
     }
     
     // 상품 정보 수정
     public Long update(Long id, ProductUpdateDTO productUpdateDTO) {
-        Product product = productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("없는 상품입니다."));
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
         product.updateDTO(productUpdateDTO);
 
         // 이미지 업데이트 전에 일단 비워두고 시작
@@ -163,6 +158,19 @@ public class ProductService {
         }
 
         return product.getId();
+    }
 
+    public Long updateStock(ProductUpdateStockDTO productUpdateStockDTO) {
+        Product product = productRepository.findById(productUpdateStockDTO.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("product is not found"));
+
+        if (product.getStockQuantity() < productUpdateStockDTO.getProductCount()) {
+            throw new IllegalArgumentException("재고가 부족합니다.");
+        }
+
+        log.error("######### 수량 : {}", productUpdateStockDTO.getProductCount());
+        product.updateStockQuantity(productUpdateStockDTO.getProductCount());
+
+        return product.getId();
     }
 }

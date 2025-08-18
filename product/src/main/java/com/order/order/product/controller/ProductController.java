@@ -1,34 +1,32 @@
 package com.order.order.product.controller;
 
 import com.order.order.common.dto.CommonDTO;
-import com.order.order.product.domain.ProductSearchDTO;
-import com.order.order.product.dto.ProductCreateDTO;
-import com.order.order.product.dto.ProductResDTO;
-import com.order.order.product.dto.ProductUpdateDTO;
+import com.order.order.product.dto.*;
 import com.order.order.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
 @RestController
 @RequestMapping("/product")
 @RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductService productService;
     
     // 상품 등록
     @PostMapping("/create")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> create(@ModelAttribute ProductCreateDTO productCreateDTO) {
-        Long id = productService.save(productCreateDTO);
+    public ResponseEntity<?> create(@ModelAttribute ProductCreateDTO productCreateDTO
+                                    , @RequestHeader("X-User-Email") String email) {
+        Long id = productService.save(productCreateDTO, email);
         return new ResponseEntity<>(CommonDTO.builder()
                 .result(id)
                 .status_code(HttpStatus.CREATED.value())
@@ -65,5 +63,14 @@ public class ProductController {
                 .result(productId)
                 .status_code(HttpStatus.OK.value())
                 .status_message("상품 수정 성공").build(), HttpStatus.OK);
+    }
+
+    @PutMapping("/updateStock")
+    public ResponseEntity<?> updateStock(@RequestBody ProductUpdateStockDTO productUpdateStockDTO) {
+        Long productId = productService.updateStock(productUpdateStockDTO);
+        return new ResponseEntity<>(CommonDTO.builder()
+                .result(productId)
+                .status_code(HttpStatus.OK.value())
+                .status_message("재고 수량 변경 완료").build(), HttpStatus.OK);
     }
 }

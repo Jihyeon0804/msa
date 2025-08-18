@@ -1,7 +1,6 @@
 package com.order.order.product.domain;
 
 import com.order.order.common.domain.BaseTimeEntity;
-import com.order.order.member.domain.Member;
 import com.order.order.product.dto.ProductUpdateDTO;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,15 +25,13 @@ public class  Product extends BaseTimeEntity {
     private int stockQuantity;
     private String imagePath;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
-    private Member member;
+    private String memberEmail;
 
     public void updateImageUrl(String imageUrl) {
         this.imagePath = imageUrl;
     }
 
-    public void updateStockQuantity(int productCount) {
+    public void updateStockQuantity(Integer productCount) {
         this.stockQuantity -= productCount;
     }
 
