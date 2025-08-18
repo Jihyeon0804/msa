@@ -1,7 +1,5 @@
 package com.order.order.ordering.domain;
 
-import com.order.order.ordering.dto.OrderCreateDTO;
-import com.order.order.product.domain.Product;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +19,10 @@ public class OrderDetail{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    private Long productId;
+
+    // 조회의 빈도에 따라 msa 도메인 설계에서 적절한 반정규화를 통한 성능 향상 가능
+    private String productName;
 
     private int quantity;
 

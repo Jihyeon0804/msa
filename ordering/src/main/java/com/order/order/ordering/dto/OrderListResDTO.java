@@ -28,7 +28,7 @@ public class OrderListResDTO {
         }
         OrderListResDTO orderListResDTO = OrderListResDTO.builder()
                 .id(ordering.getId())
-                .memberEmail(ordering.getMember().getEmail())
+                .memberEmail(ordering.getMemberEmail())
                 .orderStatus(ordering.getOrderStatus())
                 .orderDetailResDTOList(orderDetailResDTOList)
                 .build();
