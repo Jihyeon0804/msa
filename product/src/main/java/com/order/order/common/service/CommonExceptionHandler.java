@@ -5,7 +5,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,12 +45,5 @@ public class CommonExceptionHandler {
         e.printStackTrace();
         return new ResponseEntity<>(new CommonErrorDTO(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage())
                 , HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(AuthorizationDeniedException.class)
-    public ResponseEntity<?> handleAuthorizationDeniedException(AuthorizationDeniedException e) {
-        e.printStackTrace();
-        return new ResponseEntity<>(new CommonErrorDTO(HttpStatus.FORBIDDEN.value(),  e.getMessage())
-                , HttpStatus.FORBIDDEN);
     }
 }
