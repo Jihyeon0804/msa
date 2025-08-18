@@ -90,6 +90,7 @@ public class MemberController {
                 .status_message("회원 목록 조회 성공").build(), HttpStatus.OK);
     }
     
+    // SecurityContextHolder 에서 email을 꺼내지 않고 Header 에서 꺼냄
     // 마이페이지
     @GetMapping("/myPage")
     public ResponseEntity<?> myPage(@RequestHeader("X-User-Email") String email) {
