@@ -89,7 +89,6 @@ public class OrderService {
 
     // circuit 테스트 절차
     // 4 ~ 5번 정상 요청 -> 5번 중 2번의 지연 발생 -> circuit open -> 그 다음 요청은 바로 fallback
-    //
 
     // 주문 등록 (FeignClient + Kafka)
     // fallbackMethod 속성 : circuitBreaker 동작 시 fallbackMethod에 호출할 메서드 명 지정
