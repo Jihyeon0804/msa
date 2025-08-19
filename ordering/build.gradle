@@ -24,6 +24,16 @@ repositories {
 }
 
 dependencies {
+
+	// Circuit Breaker 도입시
+	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+
+	// 재고감소 비동기처리를 위한 kafka관련 의존성추가
+	implementation 'org.springframework.kafka:spring-kafka'
+
+	// msa 간에 통신을 위한 openfeign 의존성 추가
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
 	// eureka client 의존성 추가
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
