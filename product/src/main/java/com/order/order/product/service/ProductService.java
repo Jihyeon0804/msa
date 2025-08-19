@@ -168,7 +168,6 @@ public class ProductService {
             throw new IllegalArgumentException("재고가 부족합니다.");
         }
 
-        log.error("######### 수량 : {}", productUpdateStockDTO.getProductCount());
         product.updateStockQuantity(productUpdateStockDTO.getProductCount());
 
         return product.getId();
