@@ -1,7 +1,6 @@
 package com.order.order.ordering.controller;
 
 import com.order.order.common.dto.CommonDTO;
-import com.order.order.ordering.domain.Ordering;
 import com.order.order.ordering.dto.OrderCreateDTO;
 import com.order.order.ordering.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,7 @@ public class OrderController {
     @PostMapping("/create")
     public ResponseEntity<?> create(@RequestBody List<OrderCreateDTO> orderCreateDTOList
                                     , @RequestHeader("X-User-Email") String email) {
-        Long id = orderService.save(orderCreateDTOList, email);
+        Long id = orderService.createFeignKafka(orderCreateDTOList, email);
         return new ResponseEntity<>(CommonDTO.builder()
                 .result(id)
                 .status_code(HttpStatus.CREATED.value())

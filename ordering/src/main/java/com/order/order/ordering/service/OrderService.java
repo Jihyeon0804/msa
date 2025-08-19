@@ -8,10 +8,13 @@ import com.order.order.ordering.domain.Ordering;
 import com.order.order.ordering.dto.OrderCreateDTO;
 import com.order.order.ordering.dto.OrderListResDTO;
 import com.order.order.ordering.dto.ProductDTO;
+import com.order.order.ordering.feignClient.ProductFeignClient;
 import com.order.order.ordering.repository.OrderRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -28,6 +31,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final SseAlarmService sseAlarmService;
     private final RestTemplate restTemplate;
+    private final ProductFeignClient productFeignClient;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     // 주문 생성 (redisTemplate)
     public Long save(List<OrderCreateDTO> orderCreateDTOList, String email) {
@@ -65,9 +70,6 @@ public class OrderService {
                     .build();
 
             ordering.getOrderDetailList().add(orderDetail);
-
-            // kafka를 활용한 비동기적 재고 감소 요청
-
         }
 
         // 알림 발송
@@ -78,13 +80,30 @@ public class OrderService {
         return ordering.getId();
     }
 
+    // fallback 메서드는 원본 메서드(@CircuitBreaker 이 있는 메서드)의 매개변수와 정확히 일치해야 함
+    public void fallbackProductServiceCircuit(List<OrderCreateDTO> orderCreateDTOList
+                                                , String email, Throwable t) {
+        // t에 에러 메세지 담겨 있음
+        throw new RuntimeException("서버 응답 없음. 나중에 다시 시도해 주세요.");
+    }
+
+    // circuit 테스트 절차
+    // 4 ~ 5번 정상 요청 -> 5번 중 2번의 지연 발생 -> circuit open -> 그 다음 요청은 바로 fallback
+    //
+
     // 주문 등록 (FeignClient + Kafka)
+    // fallbackMethod 속성 : circuitBreaker 동작 시 fallbackMethod에 호출할 메서드 명 지정
+    @CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "fallbackProductServiceCircuit")
     public Long createFeignKafka(List<OrderCreateDTO> orderCreateDTOList, String email) {
         Ordering ordering = Ordering.builder().memberEmail(email).build();
 
         for (OrderCreateDTO orderCreateDTO : orderCreateDTOList) {
 
             // feign 클라이언트를 사용한 동기적 상품 조회
+            CommonDTO commonDTO = productFeignClient.getProductById(orderCreateDTO.getProductId());
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductDTO product = objectMapper.convertValue(commonDTO.getResult(), ProductDTO.class);
+
             if (product.getStockQuantity() < orderCreateDTO.getProductCount()) {
                 throw new IllegalArgumentException("재고가 부족합니다.");
             }
@@ -99,15 +118,12 @@ public class OrderService {
 
             ordering.getOrderDetailList().add(orderDetail);
 
-            // 동기적 재고 감소 요청
-            String productUpdateStockUrl = "http://product-service/product/updateStock";
-            HttpHeaders stockHeaders = new HttpHeaders();        // httpHeaders의 기본값 세팅 (사용자 정의 header 세팅 없을 경우)
-            stockHeaders.setContentType(MediaType.APPLICATION_JSON);
-            // HttpEntity : HttpBody와 HttpHeader를 세팅하기 위한 객체
-            HttpEntity<OrderCreateDTO> updateStockEntity = new HttpEntity<>(orderCreateDTO, stockHeaders);
-            // return 받을 게 없는 경우는 void 로 설정
-            restTemplate.exchange(productUpdateStockUrl, HttpMethod.PUT
-                    , updateStockEntity, Void.class);
+            // FeignClient를 사용한 동기적 재고 감소 요청
+//            productFeignClient.updateProductStockQuantity(orderCreateDTO);
+
+            // kafka를 활용한 비동기적 재고 감소 요청
+            kafkaTemplate.send("stock-update-topic", orderCreateDTO);
+
         }
 
         // 알림 발송
